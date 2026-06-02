@@ -1,0 +1,31 @@
+{
+  "tiktok": {
+    "enabled": false,
+    "app_key": "ใส่ App Key จาก TikTok Shop Partner Center",
+    "app_secret": "ใส่ App Secret",
+    "access_token": "ใส่ access_token หลัง authorize ร้าน",
+    "shop_cipher": "ใส่ shop_cipher ของร้าน",
+    "shop_id": "ใส่ shop_id",
+    "base_url": "https://open-api.tiktokglobalshop.com"
+  },
+  "shopee": {
+    "enabled": false,
+    "partner_id": 123456,
+    "partner_key": "ใส่ partner_key จาก Shopee Open Platform",
+    "shop_id": 7891011,
+    "access_token": "ใส่ access_token หลัง authorize ร้าน",
+    "base_url": "https://partner.shopeemobile.com"
+  },
+  "lazada": {
+    "enabled": false,
+    "app_key": "ใส่ App Key จาก Lazada Open Platform",
+    "app_secret": "ใส่ App Secret",
+    "access_token": "ใส่ access_token หลัง authorize ร้าน",
+    "base_url": "https://api.lazada.co.th/rest"
+  },
+  "settings": {
+    "lookback_days": 60,
+    "currency": "THB",
+    "use_sample_data": true
+  }
+}
