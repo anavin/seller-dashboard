@@ -116,9 +116,37 @@
     .sidebar.open{left:0}
     .menu-toggle{display:inline-flex}
   }
+  /* ---------- Login overlay ---------- */
+  #loginOverlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#0c0e14,#1a1d3a);padding:20px}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:34px 30px;width:100%;max-width:360px;text-align:center;box-shadow:var(--shadow-lg)}
+  .login-logo{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,#5b6cff,#9b5bff);
+    display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px}
+  .login-card h2{font-size:19px;font-weight:700;margin-bottom:4px}
+  .login-card p{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .login-card input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+    background:var(--panel2);color:var(--txt);font-size:15px;font-family:inherit;margin-bottom:12px}
+  .login-card input:focus{outline:none;border-color:var(--accent)}
+  .login-card button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);
+    color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  .login-card button:hover{opacity:.92}
+  .login-err{color:var(--red);font-size:13px;min-height:18px;margin-top:10px}
+  .login-foot{color:var(--soft);font-size:11px;margin-top:16px}
 </style>
 </head>
 <body>
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">📊</div>
+    <h2>Seller Analytics</h2>
+    <p>กรอกรหัสผ่านเพื่อเข้าดูแดชบอร์ด</p>
+    <input id="loginPw" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
+    <button id="loginBtn">เข้าสู่ระบบ</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-foot">🔒 ข้อมูลถูกเข้ารหัส AES-256 · ถอดรหัสในเครื่องคุณเท่านั้น</div>
+  </div>
+</div>
 <aside class="sidebar" id="sidebar">
   <div class="brand"><span class="logo">📊</span> Seller Analytics</div>
   <nav class="nav" id="nav">
@@ -131,6 +159,7 @@
   </nav>
   <div class="side-foot">
     <button class="theme-btn" id="themeBtn"><span id="themeIc">🌙</span> <span id="themeTxt">โหมดมืด</span></button>
+    <button class="theme-btn" id="logoutBtn" style="margin-top:6px;display:none">🔓 ออกจากระบบ</button>
   </div>
 </aside>
 
@@ -542,12 +571,46 @@ function setTheme(t){document.documentElement.dataset.theme=t;
 $('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 try{const t=localStorage.getItem('theme');if(t)setTheme(t);}catch(e){}
 
-fetch('dashboard_data.json?_='+Date.now()).then(r=>r.json()).then(d=>{
-  DATA=d;
+function afterLoad(){
   $('#catSel').innerHTML='<option value="all">ทุกหมวดหมู่</option>'+
-    d.meta.categories.map(c=>`<option value="${c}">${c}</option>`).join('');
+    DATA.meta.categories.map(c=>`<option value="${c}">${c}</option>`).join('');
   render();
-}).catch(()=>{$('#metaLine').textContent='ไม่พบ dashboard_data.json — รัน python run.py แล้วเปิดผ่าน local server';});
+}
+// ---------- login / decryption ----------
+let ENC=null;
+const b64buf=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decryptData(blob,pw){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64buf(blob.salt),iterations:blob.iter,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64buf(blob.iv)},key,b64buf(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function showLogin(){$('#loginOverlay').style.display='flex';$('#logoutBtn').style.display='flex';
+  setTimeout(()=>$('#loginPw').focus(),50);
+  try{const pw=sessionStorage.getItem('dpw');if(pw)submitLogin(pw,true);}catch(e){}}
+async function submitLogin(pw,silent){
+  const err=$('#loginErr'); if(!silent)err.textContent='';
+  try{
+    DATA=await decryptData(ENC,pw);
+    try{sessionStorage.setItem('dpw',pw);}catch(e){}
+    $('#loginOverlay').style.display='none'; afterLoad();
+  }catch(e){ if(!silent)err.textContent='รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง';
+    try{sessionStorage.removeItem('dpw');}catch(_){}} }
+$('#loginBtn').onclick=()=>submitLogin($('#loginPw').value,false);
+$('#loginPw').addEventListener('keydown',e=>{if(e.key==='Enter')submitLogin($('#loginPw').value,false);});
+$('#logoutBtn').onclick=()=>{try{sessionStorage.removeItem('dpw');}catch(e){}location.reload();};
+
+async function boot(){
+  try{ const r=await fetch('dashboard_data.enc?_='+Date.now());
+    if(r.ok){ const t=(await r.text()).trim();
+      if(t){ ENC=JSON.parse(t); showLogin(); return; } } }catch(e){}
+  try{ const r=await fetch('dashboard_data.json?_='+Date.now());
+    const t=(await r.text()).trim(); if(!t)throw 0;
+    DATA=JSON.parse(t); afterLoad(); }
+  catch(e){ $('#metaLine').textContent='ไม่พบไฟล์ข้อมูล — รัน python run.py แล้วเปิดผ่าน local server'; }
+}
+boot();
 </script>
 </body>
 </html>
