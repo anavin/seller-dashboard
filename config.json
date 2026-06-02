@@ -1,0 +1,32 @@
+{
+  "tiktok": {
+    "enabled": false,
+    "app_key": "",
+    "app_secret": "",
+    "access_token": "",
+    "shop_cipher": "",
+    "shop_id": "",
+    "base_url": "https://open-api.tiktokglobalshop.com"
+  },
+  "shopee": {
+    "enabled": false,
+    "partner_id": 0,
+    "partner_key": "",
+    "shop_id": 0,
+    "access_token": "",
+    "base_url": "https://partner.shopeemobile.com"
+  },
+  "lazada": {
+    "enabled": true,
+    "app_key": "139163",
+    "app_secret": "swMKXqOf0qlu61IiFXbucGqno7SpSgNF",
+    "access_token": "",
+    "base_url": "https://api.lazada.co.th/rest"
+  },
+  "settings": {
+    "lookback_days": 60,
+    "currency": "THB",
+    "use_sample_data": true,
+    "dashboard_password": "demo1234"
+  }
+}
